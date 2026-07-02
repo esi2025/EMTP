@@ -31,7 +31,9 @@ import {
   Star,
   Crop,
   Sliders,
-  Settings
+  Settings,
+  Sun,
+  Moon
 } from "lucide-react";
 import { 
   ResponsiveContainer, 
@@ -68,12 +70,37 @@ export default function App() {
     { username: "m.esmaeili.user", name: "مهدی اسماعیلی", email: "m.esmaeili@azarestan-co.com", department: "کارگاه عمران پرند", role: "User", active: true, lastActive: "2026-06-17T11:20:00" }
   ]);
   const [currentUser, setCurrentUser] = useState<ADUser>(adUsers[1]); // Default to Translator "Mehdi Esmaeili"
+  const [textSize, setTextSize] = useState<"sm" | "base" | "lg" | "xl" | "2xl">("base");
+  const [theme, setTheme] = useState<"construction" | "dark">(() => {
+    try {
+      const saved = localStorage.getItem("omran-azarestan-theme");
+      return (saved === "dark" || saved === "construction") ? saved : "construction";
+    } catch {
+      return "construction";
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("omran-azarestan-theme", theme);
+    } catch (e) {
+      console.warn("localStorage is not accessible:", e);
+    }
+  }, [theme]);
+
+  const textSizeClasses = {
+    sm: "text-xs",
+    base: "text-sm",
+    lg: "text-base",
+    xl: "text-lg",
+    "2xl": "text-xl"
+  };
 
   // Core Translator States
   const [sourceText, setSourceText] = useState("");
   const [translatedText, setTranslatedText] = useState("");
-  const [sourceLang, setSourceLang] = useState("fa");
-  const [targetLang, setTargetLang] = useState("en");
+  const [sourceLang, setSourceLang] = useState("en");
+  const [targetLang, setTargetLang] = useState("fa");
   const [isAutoDetect, setIsAutoDetect] = useState(false);
   const [selectedEngine, setSelectedEngine] = useState<string>("SeamlessM4T");
   const [isTranslating, setIsTranslating] = useState(false);
@@ -171,6 +198,13 @@ export default function App() {
   const [taggingSourceType, setTaggingSourceType] = useState<'primary' | 'secondary'>('primary');
   const [selectedProjectStamp, setSelectedProjectStamp] = useState<string | null>(null);
 
+  // Projects Search & Sync States
+  const [dbProjects, setDbProjects] = useState<any[]>([]);
+  const [isSyncingProjects, setIsSyncingProjects] = useState(false);
+  const [syncQuery, setSyncQuery] = useState("پروژه‌های صنعتی و بیمارستانی شرکت عمران آذرستان");
+  const [syncStatusMessage, setSyncStatusMessage] = useState("");
+  const [showProjectsDbModal, setShowProjectsDbModal] = useState(false);
+
   // Docs Tab State
   const [activeDocSection, setActiveDocSection] = useState(technicalSpecs[0].id);
 
@@ -210,6 +244,7 @@ export default function App() {
     fetchGlossary();
     fetchHistory();
     fetchAnalytics();
+    fetchProjects();
     
     // Seed initial audit log entries
     setSystemLogs([
@@ -361,6 +396,46 @@ export default function App() {
   }, [isDictating]);
 
   // API Integration Functions
+  const fetchProjects = async () => {
+    try {
+      const response = await fetch("/api/projects");
+      if (response.ok) {
+        const data = await response.json();
+        setDbProjects(data.projects || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch projects list", e);
+    }
+  };
+
+  const handleSyncProjects = async () => {
+    setIsSyncingProjects(true);
+    setSyncStatusMessage("");
+    addSystemLog(`آغاز پویش آنلاین پروژه‌های شرکت عمران آذرستان با موتور جستجوی هوشمند...`);
+    try {
+      const response = await fetch("/api/search-and-sync-projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ searchQuery: syncQuery })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDbProjects(data.projects || []);
+        setSyncStatusMessage(data.message);
+        addSystemLog(data.message);
+      } else {
+        const err = await response.json();
+        setSyncStatusMessage(err.error || "خطایی در فرآیند همگام‌سازی رخ داد.");
+        addSystemLog(`خطای همگام‌سازی: ${err.error}`);
+      }
+    } catch (e: any) {
+      setSyncStatusMessage(e.message);
+      addSystemLog(`خطا در ارتباط با موتور جستجو و همگام‌سازی: ${e.message}`);
+    } finally {
+      setIsSyncingProjects(false);
+    }
+  };
+
   const fetchGlossary = async () => {
     try {
       const response = await fetchWithRetry("/api/glossary", {
@@ -1257,7 +1332,132 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col antialiased selection:bg-brand-accent selection:text-white transition-colors duration-200 bg-[#eff3f6] text-slate-800" dir="rtl">
+    <div className={`min-h-screen flex flex-col antialiased selection:bg-brand-accent selection:text-white transition-all duration-300 ${theme === "dark" ? "bg-slate-950 text-slate-100 dark-theme" : "bg-[#eff3f6] text-slate-800"}`} dir="rtl">
+      
+      {/* Dynamic styles override for shift-night dark mode */}
+      <style>{`
+        .dark-theme {
+          background-color: #0b0f19 !important;
+          color: #f1f5f9 !important;
+        }
+        .dark-theme header {
+          background-color: #0b0f19 !important;
+          border-bottom-color: #1e2937 !important;
+        }
+        .dark-theme header .bg-brand-accent {
+          background-color: #2563eb !important;
+        }
+        .dark-theme section.bg-slate-800 {
+          background-color: #0d1321 !important;
+          border-bottom-color: #1e2937 !important;
+        }
+        .dark-theme .bg-white {
+          background-color: #111827 !important;
+          border-color: #1f2937 !important;
+          color: #f1f5f9 !important;
+        }
+        .dark-theme .bg-slate-50,
+        .dark-theme .bg-slate-100/50,
+        .dark-theme .bg-slate-100/30,
+        .dark-theme .bg-slate-100 {
+          background-color: #0b0f19 !important;
+          border-color: #1f2937 !important;
+        }
+        .dark-theme .bg-brand-light {
+          background-color: #1e1b4b !important;
+          color: #a5b4fc !important;
+        }
+        .dark-theme .hover\\:bg-white:hover {
+          background-color: #111827 !important;
+        }
+        .dark-theme .hover\\:bg-slate-50:hover {
+          background-color: #111827 !important;
+        }
+        .dark-theme .hover\\:bg-slate-100:hover {
+          background-color: #0b0f19 !important;
+        }
+        .dark-theme .text-slate-800,
+        .dark-theme .text-slate-900,
+        .dark-theme .text-slate-700,
+        .dark-theme .text-gray-900,
+        .dark-theme .text-indigo-950,
+        .dark-theme .text-slate-850 {
+          color: #f8fafc !important;
+        }
+        .dark-theme .text-slate-500,
+        .dark-theme .text-slate-600,
+        .dark-theme .text-slate-400,
+        .dark-theme .text-gray-600,
+        .dark-theme .text-indigo-900 {
+          color: #cbd5e1 !important;
+        }
+        .dark-theme .text-slate-300 {
+          color: #94a3b8 !important;
+        }
+        .dark-theme .border-slate-100,
+        .dark-theme .border-slate-200,
+        .dark-theme .border-slate-300 {
+          border-color: #1f2937 !important;
+        }
+        .dark-theme input,
+        .dark-theme textarea,
+        .dark-theme select {
+          background-color: #0b0f19 !important;
+          color: #f8fafc !important;
+          border-color: #1f2937 !important;
+        }
+        .dark-theme input:focus,
+        .dark-theme textarea:focus,
+        .dark-theme select:focus {
+          background-color: #111827 !important;
+          border-color: #6366f1 !important;
+        }
+        .dark-theme .bg-indigo-50,
+        .dark-theme .bg-indigo-50\\/20,
+        .dark-theme .bg-indigo-600\\/30 {
+          background-color: #1e1b4b !important;
+          border-color: #312e81 !important;
+        }
+        .dark-theme .text-indigo-700,
+        .dark-theme .text-indigo-600 {
+          color: #a5b4fc !important;
+        }
+        .dark-theme .bg-emerald-50\\/20,
+        .dark-theme .bg-emerald-50 {
+          background-color: #064e3b !important;
+          border-color: #065f46 !important;
+        }
+        .dark-theme .text-emerald-600 {
+          color: #34d399 !important;
+        }
+        .dark-theme .bg-amber-50,
+        .dark-theme .bg-amber-50\\/50 {
+          background-color: #78350f !important;
+          border-color: #92400e !important;
+          color: #fef3c7 !important;
+        }
+        .dark-theme .text-amber-800 {
+          color: #fef3c7 !important;
+        }
+        .dark-theme .divide-y > :not([hidden]) ~ :not([hidden]) {
+          border-color: #1f2937 !important;
+        }
+        .dark-theme .bg-slate-200 {
+          background-color: #111827 !important;
+          border-color: #1f2937 !important;
+        }
+        @keyframes spin-slow {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        .animate-spin-slow {
+          animation: spin-slow 10s linear infinite;
+        }
+      `}</style>
       
       {/* 1. Header Banner & Identity */}
       <header className="bg-[#1a237e] text-white shadow-lg border-b border-white/10">
@@ -1288,7 +1488,7 @@ export default function App() {
             </div>
 
             {/* AD Integration Simulation Controls */}
-            <div className="flex items-center gap-3 bg-black/20 px-4 py-2 rounded-lg border border-white/10 shadow-lg justify-between sm:justify-start">
+            <div className="flex flex-wrap items-center gap-3 bg-black/20 px-4 py-2 rounded-lg border border-white/10 shadow-lg justify-between sm:justify-start">
               <div className="flex items-center gap-2 text-right">
                 <div className="h-8 w-8 bg-brand-accent/20 rounded-full flex items-center justify-center border border-brand-accent/30 text-brand-accent">
                   {currentUser.role === 'Admin' ? <ShieldAlert className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
@@ -1304,11 +1504,33 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Theme Switcher Toggle */}
+              <div className="border-r border-white/10 h-8 pr-2 flex flex-col justify-center">
+                <label className="text-[9px] text-white/50 font-medium pb-1">پوسته دید کارگاه:</label>
+                <button
+                  onClick={() => setTheme(theme === "construction" ? "dark" : "construction")}
+                  className="flex items-center gap-1.5 px-2 py-1 rounded bg-black/30 hover:bg-black/50 transition-colors border border-white/10 text-[10px] font-bold text-white focus:outline-none cursor-pointer"
+                  title={theme === "construction" ? "تغییر به حالت شیفت شب (تاریک)" : "تغییر به حالت روز کارگاهی (روشن)"}
+                >
+                  {theme === "construction" ? (
+                    <>
+                      <Moon className="h-3.5 w-3.5 text-cyan-400" />
+                      <span>شیفت شب</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sun className="h-3.5 w-3.5 text-amber-400 animate-spin-slow" />
+                      <span>روز کارگاهی</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
               {/* Quick RBAC Tester Toggle */}
               <div className="border-r border-white/10 h-8 pr-2 flex flex-col justify-center">
                 <label className="text-[9px] text-white/50 font-medium pb-1">شبیه‌ساز نقش اکتیودایرکتوری:</label>
                 <select 
-                  className="bg-black/40 border border-white/10 rounded text-xs px-1 py-0.5 text-white focus:outline-none"
+                  className="bg-black/40 border border-white/10 rounded text-[11px] px-1 py-0.5 text-white focus:outline-none"
                   value={currentUser.username}
                   onChange={(e) => {
                     const found = adUsers.find(u => u.username === e.target.value);
@@ -1427,7 +1649,7 @@ export default function App() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               
               {/* Left Column: Translation Box */}
-              <div className="lg:col-span-8 flex flex-col gap-6">
+              <div className="lg:col-span-9 flex flex-col gap-6">
                 
                 {/* Live Translation Area */}
                 <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-4 sm:p-6">
@@ -1493,6 +1715,30 @@ export default function App() {
                         </label>
                       </div>
 
+                    </div>
+
+                    {/* Text Size Controls */}
+                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1.5 shadow-xs">
+                      <span className="text-xs text-slate-500 font-extrabold px-1">اندازه متن:</span>
+                      <div className="flex gap-1">
+                        {(["sm", "base", "lg", "xl", "2xl"] as const).map((sz) => (
+                          <button
+                            key={sz}
+                            onClick={() => setTextSize(sz)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                              textSize === sz
+                                ? "bg-brand-primary text-white shadow-xs"
+                                : "text-slate-600 hover:bg-slate-100"
+                            }`}
+                          >
+                            {sz === "sm" && "کوچک"}
+                            {sz === "base" && "متوسط"}
+                            {sz === "lg" && "بزرگ"}
+                            {sz === "xl" && "خیلی بزرگ"}
+                            {sz === "2xl" && "بسیار بزرگ"}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
                      {/* Comparison Control / Engine selection Priority */}
@@ -1582,7 +1828,8 @@ export default function App() {
                       
                       <textarea
                         ref={sourceRef}
-                        className="w-full min-h-[80px] bg-transparent resize-none focus:outline-none text-sm text-slate-800 py-2 leading-relaxed overflow-hidden"
+                        rows={5}
+                        className={`w-full min-h-[120px] bg-transparent resize-y focus:outline-none ${textSizeClasses[textSize]} text-slate-800 py-2 leading-relaxed`}
                         placeholder="متن فنی، مکاتبات کارگاهی یا آیین‌نامه‌های سازه‌ای را وارد کنید..."
                         value={sourceText}
                         onChange={(e) => setSourceText(e.target.value)}
@@ -1669,7 +1916,8 @@ export default function App() {
                       
                       <textarea
                         ref={trans1Ref}
-                        className="w-full min-h-[80px] bg-transparent resize-none focus:outline-none text-sm text-slate-800 py-2 leading-relaxed overflow-hidden"
+                        rows={5}
+                        className={`w-full min-h-[120px] bg-transparent resize-y focus:outline-none ${textSizeClasses[textSize]} text-slate-800 py-2 leading-relaxed`}
                         placeholder="ترجمه نهایی در این بخش ظاهر خواهد شد..."
                         value={translatedText}
                         readOnly
@@ -1751,7 +1999,8 @@ export default function App() {
                         
                         <textarea
                           ref={trans2Ref}
-                          className="w-full min-h-[80px] bg-transparent resize-none focus:outline-none text-sm text-slate-800 py-2 leading-relaxed overflow-hidden"
+                          rows={5}
+                          className={`w-full min-h-[120px] bg-transparent resize-y focus:outline-none ${textSizeClasses[textSize]} text-slate-800 py-2 leading-relaxed`}
                           placeholder="ترجمه موتور دوم همزمان در این بخش ظاهر می‌شود..."
                           value={comparisonTranslatedText}
                           readOnly
@@ -2037,6 +2286,64 @@ export default function App() {
                           </div>
                         )}
 
+                        {/* Database Sync Control Panel */}
+                        <div className="mt-4 pt-4 border-t border-slate-200/65 relative z-20 text-right" dir="rtl">
+                          <div className="bg-white rounded-xl p-3 border border-slate-200/80 flex flex-col md:flex-row gap-3 items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="flex h-2 w-2 relative">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                              </span>
+                              <div>
+                                <span className="text-[11px] font-black text-slate-700 block">پویش آنلاین و توسعه هوشمند بانک اطلاعات پروژه (Real-time Sync)</span>
+                                <span className="text-[9px] text-slate-400 font-bold block">جستجو و همگام‌سازی پروژه‌های واقعی شرکت عمران آذرستان در سراسر ایران با موتور گوگل</span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex gap-2 w-full md:w-auto">
+                              <input
+                                type="text"
+                                value={syncQuery}
+                                onChange={(e) => setSyncQuery(e.target.value)}
+                                placeholder="مثلاً: پروژه‌های بیمارستانی یا صنعتی آذرستان"
+                                className="text-[11px] bg-slate-50 border border-slate-250 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold w-full md:w-64"
+                              />
+                              <button
+                                onClick={handleSyncProjects}
+                                disabled={isSyncingProjects}
+                                className="text-[11px] bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-extrabold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                              >
+                                {isSyncingProjects ? (
+                                  <>
+                                    <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                    <span>در حال جستجو...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Search className="h-3.5 w-3.5" />
+                                    <span>پویش و افزودن پروژه</span>
+                                  </>
+                                )}
+                              </button>
+                              
+                              <button
+                                onClick={() => setShowProjectsDbModal(true)}
+                                className="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 cursor-pointer shrink-0 border border-slate-200"
+                              >
+                                <Database className="h-3.5 w-3.5 text-slate-500" />
+                                <span>بانک پروژه‌ها ({dbProjects.length})</span>
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {syncStatusMessage && (
+                            <div className="mt-2 text-[10px] bg-indigo-50/50 border border-indigo-100 text-indigo-900 p-2 rounded-lg font-bold flex items-center gap-1 justify-start">
+                              <Sparkles className="h-3 w-3 text-indigo-600 shrink-0" />
+                              <span>{syncStatusMessage}</span>
+                            </div>
+                          )}
+                        </div>
+
                       </div>
                     </div>
                   )}
@@ -2144,7 +2451,7 @@ export default function App() {
               </div>
 
               {/* Right Column: OCR Tools & Quick Terms */}
-              <div className="lg:col-span-4 flex flex-col gap-6">
+              <div className="lg:col-span-3 flex flex-col gap-6">
                 
                 {/* Visual OCR Text Extraction Tool */}
                 <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-5">
@@ -3602,6 +3909,91 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* 6. Dynamic Projects Database Viewer Modal */}
+      {showProjectsDbModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in text-right" dir="rtl">
+          <div className="bg-white rounded-2xl border border-slate-200 w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            {/* Header */}
+            <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Database className="h-5 w-5 text-indigo-600" />
+                <div>
+                  <h3 className="font-black text-slate-800 text-sm">بانک پروژه‌های مهندسی عمران آذرستان</h3>
+                  <p className="text-[10px] text-slate-400 font-bold">پروژه‌های واقعی همگام‌سازی شده و فعال در سیستم تطبیق معنایی هوشمند</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowProjectsDbModal(false)}
+                className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 px-3 py-1.5 rounded-lg transition-all cursor-pointer font-bold"
+              >
+                بستن پنجره
+              </button>
+            </div>
+
+            {/* List */}
+            <div className="p-4 overflow-y-auto space-y-3 flex-1 bg-slate-50/50">
+              {dbProjects.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-400 font-bold">
+                  هیچ پروژه‌ای در بانک اطلاعاتی یافت نشد. دکمه پویش را فشار دهید.
+                </div>
+              ) : (
+                dbProjects.map((proj, idx) => (
+                  <div key={idx} className="bg-white border border-slate-250 rounded-xl p-4 shadow-2xs hover:border-indigo-300 transition-all">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full uppercase font-mono">
+                          {proj.id}
+                        </span>
+                        <h4 className="font-black text-slate-800 text-xs">{proj.nameFa}</h4>
+                        <span className="text-slate-300 text-xs">|</span>
+                        <span className="text-[10px] font-mono text-slate-400" dir="ltr">{proj.nameEn}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md font-bold">
+                        {proj.location}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-slate-600 leading-relaxed mb-3">
+                      <strong>شرح خدمات:</strong> {proj.scope}
+                    </p>
+
+                    <div className="flex flex-wrap gap-1.5 items-center">
+                      <span className="text-[9px] text-slate-400 font-black">دسته‌بندی‌ها:</span>
+                      {proj.mainTags && proj.mainTags.map((tag: string, i: number) => (
+                        <span key={i} className="text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-150 bg-slate-50 flex flex-wrap justify-between items-center gap-2">
+              <span className="text-[10px] text-slate-400 font-bold">تعداد کل پروژه‌های فعال: {dbProjects.length}</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={syncQuery}
+                  onChange={(e) => setSyncQuery(e.target.value)}
+                  placeholder="کلیدواژه جستجو..."
+                  className="text-[10px] bg-white border border-slate-200 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold w-48"
+                />
+                <button
+                  onClick={handleSyncProjects}
+                  disabled={isSyncingProjects}
+                  className="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  {isSyncingProjects ? "در حال همگام‌سازی..." : "پویش آنلاین مجدد"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

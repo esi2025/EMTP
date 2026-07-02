@@ -1201,78 +1201,170 @@ app.post("/api/vote", (req, res) => {
 });
 
 // Initial Construction Projects Database
-const projectsDb = [
+let projectsDb = [
   {
-    id: "megamall",
-    nameFa: "پروژه مگا مال تهران",
-    nameEn: "Tehran Megamall Project",
-    location: "تهران، اکباتان",
-    scope: "مجتمع بزرگ تجاری و خدماتی با بستر بتن پیش‌تنیده و سازه فولادی سنگین",
-    mainTags: ["سازه", "پیش‌تنیدگی", "مجتمع تجاری", "بتن‌ریزی", "تاسیسات"],
-    keywordsFa: ["مگا مال", "مگامال", "پیش‌تنیده", "پیش‌تنیدگی", "تجاری", "سقف", "شاپینگ", "سازه فولادی", "تاسیسات", "لابی", "ستون"],
-    keywordsEn: ["megamall", "mega mall", "prestressing", "prestressed", "shopping", "retail", "steel structure", "slab", "hvac", "plaza", "suspended slab"]
+    id: "saveh_cement",
+    nameFa: "پروژه سیمان سفید ساوه",
+    nameEn: "Saveh White Cement Plant",
+    location: "مرکزی، ساوه",
+    scope: "احداث خط تولید سیمان سفید ساوه شامل دپارتمان‌های سنگ‌شکن، سالن اختلاط، پیش‌گرمکن، کوره دوار و دیسپاچینگ مجهز",
+    mainTags: ["سیمان", "صنعتی", "بتن‌ریزی سنگین", "سیلوها"],
+    keywordsFa: ["ساوه", "سیمان ساوه", "سیمان سفید", "دیسپاچینگ", "کلینکر", "پیش‌گرمکن", "کوره دوار", "سیلو", "صنعتی", "بتن‌ریزی"],
+    keywordsEn: ["saveh", "white cement", "clinker", "preheater", "kiln", "silo", "dispatching", "crusher", "industrial concrete"]
   },
   {
-    id: "metro7",
-    nameFa: "خط ۷ مترو تهران",
-    nameEn: "Tehran Metro Line 7",
-    location: "تهران",
-    scope: "حفاری مکانیزه تونل، شفت‌های میانی، سیستم‌های پایدارسازی عمیق و ایستگاه‌های مترو",
-    mainTags: ["تونل‌سازی", "شفت", "ژئوتکنیک", "سازه نگهبان", "ریلی"],
-    keywordsFa: ["مترو", "تونل", "حفاری", "سازه نگهبان", "ژئوتکنیک", "شفت", "لاینینگ", "سپری", "خاکبرداری", "پی‌کنی", "ریلی", "سگمنت", "تی‌بی‌ام"],
-    keywordsEn: ["metro", "subway", "tunnel", "alignment", "tbm", "boring", "shoring", "excavation", "geotechnical", "lining", "underground station", "segmental"]
+    id: "firouzkoh_cement",
+    nameFa: "کارخانه سیمان فیروزکوه",
+    nameEn: "Firouzkoh Cement Plant Project",
+    location: "تهران، فیروزکوه",
+    scope: "طراحی و اجرای کلیه عملیات ساختمانی و فونداسیون‌های لرزه‌ای تجهیزات سنگین خط تولید سیمان فراز فیروزکوه",
+    mainTags: ["سیمان", "سازه صنعتی", "پیش‌گرمکن", "فونداسیون لرزه‌ای"],
+    keywordsFa: ["فیروزکوه", "سیمان فیروزکوه", "سیمان فراز", "سازه صنعتی", "گالری انتقال", "سنگ‌شکن", "تجهیزات دوار", "فونداسیون"],
+    keywordsEn: ["firouzkoh", "cement plant", "industrial framing", "dynamic foundation", "crusher", "conveyor gallery"]
   },
   {
-    id: "farmaniyeh",
-    nameFa: "برج مسکونی فرمانیه",
-    nameEn: "Farmaniyeh Residential Tower",
-    location: "تهران، فرمانیه",
-    scope: "احداث اسکلت بتنی با فناوری نوین سقف‌های مجوف کوبیاکس در تراز برج مسکونی لوکس",
-    mainTags: ["بلندمرتبه", "کوبیاکس", "سازه بتنی", "مسکونی", "معماری"],
-    keywordsFa: ["فرمانیه", "مسکونی", "برج", "کوبیاکس", "سقف مجوف", "بتنی", "آرماتور", "شالوده", "بلندمرتبه", "شاتکریت"],
-    keywordsEn: ["farmaniyeh", "residential", "tower", "cobiax", "voided slab", "concrete casting", "rebar", "apartment", "high-rise", "superstructure"]
+    id: "vian_steel",
+    nameFa: "کارخانه فولاد ویان همدان",
+    nameEn: "Vian Steel Plant",
+    location: "همدان، کبودرآهنگ",
+    scope: "عملیات ساختمانی سالن‌های ذوب و نورد فولاد ویان، فونداسیون‌های کوره قوس الکتریکی و سازه‌های فلزی فوق‌سنگین",
+    mainTags: ["فولاد", "ذوب آهن", "سازه صنعتی", "سوله سنگین"],
+    keywordsFa: ["ویان", "فولاد ویان", "همدان", "کبودرآهنگ", "کوره قوس", "ذوب", "نورد", "سوله سنگین", "جرثقیل سقفی", "سازه‌های فلزی"],
+    keywordsEn: ["vian steel", "electric arc furnace", "melt shop", "rolling mill", "heavy shed", "overhead crane", "gantry"]
   },
   {
-    id: "haraz",
-    nameFa: "سد هراز",
-    nameEn: "Haraz Dam Project",
-    location: "مازندران، جاده هراز",
-    scope: "ساخت بدنه سد سنگ‌ریزه‌ای با هسته رسی، تونل‌های انحراف آب و سرریزهای هیدرولیکی بزرگ",
-    mainTags: ["سدسازی", "هیدرولیک", "روان‌کننده بتن", "سنگ‌ریزی", "آب"],
-    keywordsFa: ["سد", "هراز", "آب", "سرریز", "دریچه", "هیدرولیک", "بتن غلتکی", "هسته رسی", "ژئوممبران", "آب‌بند", "حوضچه", "رودخانه", "رسوب"],
-    keywordsEn: ["dam", "haraz", "reservoir", "spillway", "hydraulic", "clay core", "rockfill", "seepage", "water resources", "grouting", "admixture"]
+    id: "barez_tire",
+    nameFa: "کارخانه لاستیک بارز کردستان",
+    nameEn: "Barez Tire Factory Kurdistan",
+    location: "کردستان، سنندج",
+    scope: "احداث ابنیه فنی و سالن‌های تولید انبوه تایر به انضمام مخازن آب، تصفیه‌خانه‌های اختصاصی و تاسیسات مکانیکال پیچیده",
+    mainTags: ["صنعتی", "لاستیک", "انبار مجهز", "تاسیسات جانبی"],
+    keywordsFa: ["بارز", "لاستیک بارز", "کردستان", "سنندج", "تایر", "تصفیه‌خانه", "سالن تولید", "مخازن", "تاسیسات"],
+    keywordsEn: ["barez", "tire factory", "kurdistan", "sanandaj", "industrial production hall", "utility water tanks", "wastewater treatment"]
   },
   {
-    id: "mashhad_lrt",
-    nameFa: "پروژه قطار شهری مشهد",
-    nameEn: "Mashhad Light Rail Project",
+    id: "armitage_complex",
+    nameFa: "برج تجاری اداری آرمیتاژ گلشن مشهد",
+    nameEn: "Armitage Golshan Office & Commercial Tower",
     location: "خراسان رضوی، مشهد",
-    scope: "توسعه خطوط ریلی سبک شهری، روسازی و زیرسازی مسیرهای ترانزیتی و ایستگاه‌های همکف",
-    mainTags: ["ایستگاه", "پی‌ریزی", "زهکشی", "روسازی", "حمل‌ونقل"],
-    keywordsFa: ["قطار شهری", "مشهد", "ایستگاه", "ریل", "روسازی", "زیرسازی", "سوزن‌بندی", "ناوگان", "پی‌ریزی", "زهکشی", "ترانزیت"],
-    keywordsEn: ["light rail", "lrt", "urban rail", "metro station", "railway", "track", "alignment", "drainage", "substructure", "ballast", "passenger"]
+    scope: "احداث برج ۳۴ طبقه تجاری-اداری آرمیتاژ گلشن با تکنولوژی هسته بتنی مرکزی و دال‌های بتنی پیش‌تنیده پس‌کشیده",
+    mainTags: ["بلندمرتبه", "پیش‌تنیدگی", "تجاری", "سازه ترکیبی"],
+    keywordsFa: ["آرمیتاژ", "گلشن", "مشهد", "هسته بتنی", "پیش‌تنیده", "پس‌کشیده", "برج تجاری", "اداری", "سازه ترکیبی", "شفت"],
+    keywordsEn: ["armitage", "golshan", "mashhad", "high-rise", "prestressed", "post-tensioned", "concrete core", "commercial tower"]
   },
   {
-    id: "toos_power",
-    nameFa: "نیروگاه سیکل ترکیبی توس",
-    nameEn: "Toos Combined Cycle Power Plant",
-    location: "مشهد، توس",
-    scope: "اجرای فونداسیون‌های سنگین توربین‌های بخار، برج‌های خنک‌کننده خشک و سویل نیروگاهی",
-    mainTags: ["نیروگاه", "صنعتی", "پایه توربین", "خنک‌کننده", "تاسیسات سنگین"],
-    keywordsFa: ["نیروگاه", "توس", "توربین", "بخار", "سیکل ترکیبی", "ژنراتور", "خنک‌کننده", "صنعتی", "دودکش", "مکانیکال"],
-    keywordsEn: ["power plant", "turbine", "toos", "generator", "cooling tower", "steam", "industrial framing", "boiler", "civil works", "foundation"]
+    id: "sewage_south",
+    nameFa: "تصفیه‌خانه فاضلاب جنوب تهران",
+    nameEn: "South Tehran Sewage Treatment Plant",
+    location: "تهران، ری",
+    scope: "ساخت حوضچه‌های ته‌نشینی، تانک‌های هوادهی عمیق بتنی آب‌بند و خطوط انتقال پساب شهری",
+    mainTags: ["تصفیه‌خانه", "مخازن بتنی", "هیدرولیک", "بتن آب‌بند"],
+    keywordsFa: ["تصفیه‌خانه", "فاضلاب", "هوادهی", "لجن فعال", "حوضچه ته‌نشینی", "کانال بتنی", "آب‌بندی", "پساب", "پمپاژ"],
+    keywordsEn: ["sewage", "wastewater treatment", "aeration tank", "settling basin", "hydraulic concrete", "sludge pumping", "waterproofing"]
   },
   {
-    id: "assaluyeh",
-    nameFa: "پتروشیمی عسلویه",
-    nameEn: "Assaluyeh Petrochemical Plant",
-    location: "بوشهر، عسلویه",
-    scope: "طراحی و ساخت سازه‌های پیچیده ساحلی، پایپ‌راک‌ها، فونداسیون تجهیزات دوار و پایپینگ مخازن فشار",
-    mainTags: ["نفت و گاز", "مخازن", "پایپینگ", "عایق‌کاری", "سازه صنعتی"],
-    keywordsFa: ["پتروشیمی", "عسلویه", "نفت و گاز", "پایپینگ", "مخازن", "پالایشگاه", "فلر", "پایپ‌راک", "عایق‌کاری", "خط لوله"],
-    keywordsEn: ["petrochemical", "assaluyeh", "piping", "refinery", "pipeline", "oil and gas", "vessels", "pipe rack", "storage tank", "chemical insulation"]
+    id: "rotana_hotel",
+    nameFa: "پروژه هتل ۵ ستاره روتانا مشهد",
+    nameEn: "Rotana 5-Star Hotel Mashhad",
+    location: "خراسان رضوی، مشهد",
+    scope: "احداث سازه بتنی، دیوارهای حائل عمیق و سیستم پایدارسازی گود عظیم هتل بین‌المللی مجلل روتانا مشهد",
+    mainTags: ["هتل", "بلندمرتبه", "دیوار حائل", "سازه بتنی"],
+    keywordsFa: ["روتانا", "هتل روتانا", "مشهد", "هتل ۵ ستاره", "دیوار حائل", "پایدارسازی گود", "نیلینگ", "آنکراژ", "بتن‌ریزی"],
+    keywordsEn: ["rotana", "hotel rotana", "mashhad", "retaining wall", "deep excavation", "shoring", "concrete framing"]
   }
 ];
+
+// API: Get current list of projects
+app.get("/api/projects", (req, res) => {
+  res.json({ success: true, projects: projectsDb });
+});
+
+// API: Search and dynamically sync real projects from Omran Azarestan using Google Search grounding
+app.post("/api/search-and-sync-projects", async (req, res) => {
+  const { searchQuery } = req.body;
+  const finalQuery = searchQuery || "پروژه های جدید شرکت عمران آذرستان در ایران";
+  
+  const ai = getGeminiClient();
+  if (!ai) {
+    return res.status(500).json({ error: "سرویس هوش مصنوعی فعال نیست" });
+  }
+
+  try {
+    const prompt = `You are an expert researcher with access to real-time Google Search. Your goal is to find actual, real-world civil engineering, construction, building, or industrial projects executed or currently under construction by the Iranian contractor "شرکت عمران آذرستان" (Omran Azarestan) in Iran.
+Query: ${finalQuery}
+
+We currently have these projects in our database:
+${JSON.stringify(projectsDb.map(p => p.nameFa), null, 2)}
+
+Instructions:
+1. Search Google live for real-world projects by "عمران آذرستان". Examples include commercial buildings, factories, industrial plants, infrastructure, etc.
+2. Find 2 to 3 real projects that are NOT already listed above, or provide richer updated data for them.
+3. For each found project, extract:
+   - id: a short slug (e.g., "shariati_hospital" or "gorgan_cement")
+   - nameFa: Persian name (e.g. "بیمارستان شریعتی تهران - ساختمان جدید")
+   - nameEn: English name (e.g. "Shariati Hospital New Building Project")
+   - location: Location in Iran (e.g. "تهران، امیرآباد")
+   - scope: A technical explanation of their contract or work (in Persian, detailed)
+   - mainTags: 3 or 4 relevant engineering tags
+   - keywordsFa: Persian keywords for fuzzy matching
+   - keywordsEn: English keywords for fuzzy matching
+4. Provide the result strictly as a raw JSON array of objects. Do NOT wrap it in markdown backticks. No conversational text.
+`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }]
+      }
+    });
+
+    let responseText = response.text ? response.text.trim() : "";
+    if (responseText.startsWith("```")) {
+      responseText = responseText.replace(/^```(json)?\s*/i, "").replace(/\s*```$/, "");
+    }
+    responseText = responseText.trim();
+
+    const newProjects = JSON.parse(responseText);
+    let addedCount = 0;
+
+    if (Array.isArray(newProjects)) {
+      newProjects.forEach((proj: any) => {
+        if (proj.id && proj.nameFa) {
+          // Check if already exists by ID
+          const exists = projectsDb.some(p => p.id === proj.id || p.nameFa === proj.nameFa);
+          if (!exists) {
+            projectsDb.push({
+              id: proj.id,
+              nameFa: proj.nameFa,
+              nameEn: proj.nameEn || proj.id,
+              location: proj.location || "ایران",
+              scope: proj.scope || "",
+              mainTags: proj.mainTags || ["پروژه جدید", "عمران آذرستان"],
+              keywordsFa: proj.keywordsFa || [],
+              keywordsEn: proj.keywordsEn || []
+            });
+            addedCount++;
+          }
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `تعداد ${addedCount} پروژه واقعی جدید عمران آذرستان در ایران جستجو، استخراج و به بانک اطلاعاتی اضافه شد.`,
+      addedCount,
+      allProjectsCount: projectsDb.length,
+      projects: projectsDb
+    });
+  } catch (err: any) {
+    console.error("Error in search-and-sync-projects:", err);
+    res.status(500).json({
+      success: false,
+      error: `خطا در جستجوی آنلاین پروژه ها: ${err.message}`
+    });
+  }
+});
 
 // API: Smart construction project tagging route utilizing semantic similarity & heuristics
 app.post("/api/smart-tag", async (req, res) => {
