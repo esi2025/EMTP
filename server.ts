@@ -268,6 +268,62 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// API: Live test of the Gemini API Key
+app.get("/api/test-api-key", async (req, res) => {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key || key === "MY_GEMINI_API_KEY") {
+    return res.json({
+      success: false,
+      configured: false,
+      message: "کلید API تعریف نشده است یا مقدار پیش‌فرض است.",
+      error: "No API Key configured in environment variables"
+    });
+  }
+
+  const ai = getGeminiClient();
+  if (!ai) {
+    return res.json({
+      success: false,
+      configured: true,
+      message: "خطا در مقداردهی اولیه سرویس هوش مصنوعی.",
+      error: "Initialization failed"
+    });
+  }
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: "Say 'ok' in Persian in one word.",
+      config: {
+        maxOutputTokens: 5,
+      }
+    });
+    if (response && response.text) {
+      res.json({
+        success: true,
+        configured: true,
+        message: "کلید API معتبر و ارتباط با سرورهای گوگل با موفقیت آزمایش شد.",
+        response: response.text.trim()
+      });
+    } else {
+      res.json({
+        success: false,
+        configured: true,
+        message: "پاسخ خالی دریافت شد.",
+        error: "Empty response from Gemini API"
+      });
+    }
+  } catch (err: any) {
+    console.error("API Key health test failed:", err);
+    res.json({
+      success: false,
+      configured: true,
+      message: "خطا در تایید اصالت کلید API. کلید وارد شده احتمالاً نامعتبر است.",
+      error: err.message
+    });
+  }
+});
+
 // API: Authentic user check (Mock Microsoft Active Directory)
 app.post("/api/login", (req, res) => {
   const { username, password } = req.body;
@@ -622,9 +678,8 @@ const fetchGoogleTranslate = async (text: string, sourceLang: string, targetLang
       chunks = [para];
     }
 
-    const translatedChunks: string[] = [];
-    for (const chunk of chunks) {
-      if (!chunk.trim()) continue;
+    const translatedChunks = await Promise.all(chunks.map(async (chunk) => {
+      if (!chunk.trim()) return "";
       
       const hosts = [
         "translate.googleapis.com",
@@ -672,14 +727,14 @@ const fetchGoogleTranslate = async (text: string, sourceLang: string, targetLang
       }
 
       if (chunkResult !== null) {
-        translatedChunks.push(chunkResult);
+        return chunkResult;
       } else {
         console.warn(`All Free Google API endpoints failed for chunk, utilizing dictionary fallback. Last error:`, lastError);
-        translatedChunks.push(fallbackTranslate(chunk, sourceLang, targetLang, engineName));
+        return fallbackTranslate(chunk, sourceLang, targetLang, engineName);
       }
-    }
+    }));
     
-    translatedParagraphs.push(translatedChunks.join(" "));
+    translatedParagraphs.push(translatedChunks.filter(c => c !== "").join(" "));
   }
 
   return translatedParagraphs.join("\n");
@@ -735,9 +790,38 @@ app.post("/api/translate", async (req, res) => {
           matchingGlossary.map(item => `- '${actualSourceLang === 'fa' ? item.term : item.equivalentEn}' must be translated to: '${targetLang === 'fa' ? item.term : (targetLang === 'en' ? item.equivalentEn : item.equivalentRu)}'.`).join("\n");
       }
 
-      const prompt = `You are an expert technical translator specialized in civil engineering, industrial design, concrete construction, and infrastructure projects.
+      const prompt = `You are a world-class technical and contractual translator specialized in civil engineering, industrial design, concrete construction, project management, and infrastructure projects under FIDIC or Iranian MPO regulations.
 Translate the following text from ${srcName} to ${targetName}.
-Ensure high-precision architectural and civil engineering accuracy. Maintain the tone of a professional construction report.
+
+Strictly adhere to the following professional guidelines for civil engineering and construction:
+1. Translate technical terms accurately to their industry-standard equivalents:
+   - "بتن مسلح" / "بتن آرمه" ➔ "Reinforced Concrete"
+   - "فونداسیون" / "پی" ➔ "Foundation" or "Footing"
+   - "سازه نگهبان" ➔ "Retaining Structure" or "Shoring System"
+   - "میلگرد" / "آرماتور" ➔ "Rebar" or "Reinforcement Bar"
+   - "قالب‌بندی" ➔ "Formwork" or "Shuttering"
+   - "بتن‌ریزی" ➔ "Concrete Pouring" or "Concreting"
+   - "سقف کوبیاکس" ➔ "Cobiax Slab" / "Cobiax Voided Slab"
+   - "پیش‌تنیده" ➔ "Prestressed"
+   - "پس‌کشیده" ➔ "Post-tensioned"
+   - "روان‌ساز" / "فوق‌روان‌ساز" ➔ "Superplasticizer"
+   - "درز انبساط" ➔ "Expansion Joint"
+   - "گودبرداری" ➔ "Excavation"
+   - "نقشه‌های کارگاهی" / "شاپ دراوینگ" ➔ "Shop Drawings"
+   - "نقشه‌های چون‌ساخت" / "ازبیلت" ➔ "As-Built Drawings"
+   - "تجهیز کارگاه" ➔ "Site Mobilization"
+   - "متره و برآورد" ➔ "Quantity Takeoff & Estimation"
+   - "برآورد هزینه" ➔ "Cost Estimate" / "Bill of Quantities (BOQ)"
+2. Apply proper contractual terminology for corporate reports:
+   - "صورت وضعیت" ➔ "Interim Payment Certificate (IPC)" or "Statement of Billings"
+   - "دستور کار" ➔ "Site Instruction" or "Work Order"
+   - "صورتجلسه" / "صورت‌جلسه" ➔ "Minutes of Meeting (MoM)" or "Joint Record / Protocol"
+   - "کارفرما" ➔ "Employer" or "Client"
+   - "پیمانکار" ➔ "Contractor"
+   - "مشاور" ➔ "Consultant" or "Engineer"
+   - "دستگاه نظارت" ➔ "Supervision Body" or "Supervisory Team"
+   - "تاخیرات مجاز" ➔ "Excusable Delays"
+   - "صورت وضعیت کارکرد" ➔ "Progress Payment Statement"
 
 ${dictionaryInstruction}
 
@@ -746,6 +830,7 @@ Original Text to Translate:
 ${text}
 """
 
+Ensure high-precision architectural and civil engineering accuracy. Maintain the tone of a professional construction report.
 Provide ONLY the final translated text as the response. Do not add any introductory or concluding phrases, do not repeat the main text, and do not put quotation marks. Keep formatting and structure intact.`;
 
       const response = await ai.models.generateContent({

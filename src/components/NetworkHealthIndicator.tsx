@@ -10,7 +10,8 @@ import {
   Info, 
   Clock, 
   Database,
-  Unplug
+  Unplug,
+  Key
 } from "lucide-react";
 
 interface PingHistoryItem {
@@ -41,6 +42,40 @@ export const NetworkHealthIndicator: React.FC<NetworkHealthIndicatorProps> = ({ 
   });
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [isTestingApiKey, setIsTestingApiKey] = useState(false);
+  const [apiKeyTestResult, setApiKeyTestResult] = useState<any>(null);
+
+  const testApiKey = async () => {
+    if (isTestingApiKey) return;
+    setIsTestingApiKey(true);
+    setApiKeyTestResult(null);
+    try {
+      const response = await fetch("/api/test-api-key");
+      const data = await response.json();
+      setApiKeyTestResult(data);
+      if (onSystemLog) {
+        onSystemLog(data.success 
+          ? `🔑 تست سلامت API Key: ${data.message} (پاسخ مدل: ${data.response || ""})`
+          : `⚠️ تست سلامت API Key شکست خورد: ${data.message} | خطای فنی: ${data.error || ""}`
+        );
+      }
+    } catch (error: any) {
+      console.error("API key test failed on client:", error);
+      const errRes = {
+        success: false,
+        configured: false,
+        message: "خطا در برقراری ارتباط با سرور جهت آزمایش کلید.",
+        error: error.message
+      };
+      setApiKeyTestResult(errRes);
+      if (onSystemLog) {
+        onSystemLog(`❌ خطا در ارتباط برای آزمایش کلید API Key: ${error.message}`);
+      }
+    } finally {
+      setIsTestingApiKey(false);
+    }
+  };
 
   // Synchronize state with window globals
   useEffect(() => {
@@ -290,6 +325,59 @@ export const NetworkHealthIndicator: React.FC<NetworkHealthIndicatorProps> = ({ 
                 </span>
                 <span className="text-slate-400">کانکشن پایپ‌لاین هوش مصنوعی:</span>
               </div>
+            </div>
+
+            {/* API Key Health Test Section */}
+            <div className="space-y-2 border-t border-slate-800 pt-3">
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={testApiKey}
+                  disabled={isTestingApiKey}
+                  className="bg-indigo-600/80 hover:bg-indigo-600 disabled:bg-slate-800 text-white font-extrabold px-2.5 py-1.5 rounded-md text-[10px] flex items-center gap-1 transition-all cursor-pointer border border-indigo-500/20 shadow-sm active:scale-95"
+                >
+                  {isTestingApiKey ? (
+                    <>
+                      <RefreshCw className="h-3 w-3 animate-spin text-cyan-400" />
+                      <span>در حال بررسی...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Key className="h-3 w-3 text-indigo-200" />
+                      <span>آزمایش کلید (Live Test)</span>
+                    </>
+                  )}
+                </button>
+                <span className="text-[10px] text-slate-400 font-medium">تست سلامت کلید Gemini:</span>
+              </div>
+
+              {apiKeyTestResult && (
+                <div className={`p-2 rounded border text-[10px] leading-relaxed animate-fade-in ${
+                  apiKeyTestResult.success 
+                    ? "bg-emerald-950/20 border-emerald-500/30 text-emerald-300" 
+                    : "bg-rose-950/20 border-rose-500/30 text-rose-300"
+                }`}>
+                  <div className="flex items-start gap-1.5 justify-start">
+                    {apiKeyTestResult.success ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertTriangle className="h-3.5 w-3.5 text-rose-400 shrink-0 mt-0.5" />
+                    )}
+                    <div>
+                      <p className="font-bold">{apiKeyTestResult.message}</p>
+                      {apiKeyTestResult.success && apiKeyTestResult.response && (
+                        <p className="text-[9px] text-emerald-400/80 font-mono mt-0.5" dir="ltr">
+                          Response: "{apiKeyTestResult.response}"
+                        </p>
+                      )}
+                      {!apiKeyTestResult.success && apiKeyTestResult.error && (
+                        <p className="text-[9px] text-rose-400/80 font-mono mt-0.5" dir="ltr">
+                          Error: {apiKeyTestResult.error}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Diagnostic Spark History */}

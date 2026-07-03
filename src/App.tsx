@@ -104,6 +104,9 @@ export default function App() {
   const [isAutoDetect, setIsAutoDetect] = useState(false);
   const [selectedEngine, setSelectedEngine] = useState<string>("SeamlessM4T");
   const [isTranslating, setIsTranslating] = useState(false);
+  const [translationProgress, setTranslationProgress] = useState(0);
+  const [translationStage, setTranslationStage] = useState(1);
+  const [translationSeconds, setTranslationSeconds] = useState(0);
   const [detectedLanguageText, setDetectedLanguageText] = useState("");
   const [activeAdmixtureCategory, setActiveAdmixtureCategory] = useState("عمومی عمران");
   
@@ -262,6 +265,55 @@ export default function App() {
       setActiveTab("translate");
     }
   }, [currentUser, activeTab]);
+
+  // Translation timeline timer and pipeline simulator
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    let timerInterval: NodeJS.Timeout | null = null;
+    
+    if (isTranslating) {
+      setTranslationProgress(0);
+      setTranslationStage(1);
+      setTranslationSeconds(0);
+      
+      timerInterval = setInterval(() => {
+        setTranslationSeconds((prev) => parseFloat((prev + 0.1).toFixed(1)));
+      }, 100);
+
+      interval = setInterval(() => {
+        setTranslationProgress((currentProgress) => {
+          let nextProgress = currentProgress;
+          if (currentProgress < 20) {
+            nextProgress += 2.0; // Stage 1 (0% - 20%)
+            setTranslationStage(1);
+          } else if (currentProgress < 50) {
+            nextProgress += 1.5; // Stage 2 (20% - 50%)
+            setTranslationStage(2);
+          } else if (currentProgress < 72) {
+            nextProgress += 1.0; // Stage 3 (50% - 72%)
+            setTranslationStage(3);
+          } else if (currentProgress < 90) {
+            nextProgress += 0.8; // Stage 4 (72% - 90%)
+            setTranslationStage(4);
+          } else if (currentProgress < 97) {
+            nextProgress += 0.3; // Stage 5 (90% - 97%)
+            setTranslationStage(5);
+          } else {
+            nextProgress += 0.05; // Slow crawl to wait for server response
+          }
+          return parseFloat(Math.min(99.5, nextProgress).toFixed(1));
+        });
+      }, 100);
+    } else {
+      setTranslationProgress(100);
+      setTranslationStage(5);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+      if (timerInterval) clearInterval(timerInterval);
+    };
+  }, [isTranslating]);
 
   // Perform Smart Project Tagging mapping
   const handleSmartTagging = async (textToTag?: string) => {
@@ -1902,6 +1954,98 @@ export default function App() {
                       )}
 
                     </div>
+
+                    {/* Dynamic Wait Timeline / Progress Tracker */}
+                    {isTranslating && (
+                      <div className="bg-slate-950 text-white rounded-2xl p-5 border border-slate-800 shadow-xl space-y-4 animate-fade-in text-right mt-2" dir="rtl">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-3 w-3 relative">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+                            </span>
+                            <div>
+                              <h4 className="text-xs font-black text-slate-100">وقایع‌نگاری پویای فرآیند ترجمه (Live Translation Timeline)</h4>
+                              <p className="text-[10px] text-slate-400 font-bold">پردازش موازی و تطبیق هوشمند اصطلاحات مهندسی آذرستان</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-3 bg-slate-900 px-3 py-1 rounded-lg border border-slate-800">
+                            <span className="text-[10px] font-mono text-cyan-400 font-black">
+                              زمان سپری شده: {translationSeconds} ثانیه
+                            </span>
+                            <span className="text-slate-800 text-xs">|</span>
+                            <span className="text-[10px] font-mono text-indigo-400 font-black">
+                              پیشرفت کل: {translationProgress}%
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Progress Bar with Native CSS */}
+                        <div className="relative h-2 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-850">
+                          <div 
+                            className="absolute right-0 top-0 h-full bg-gradient-to-l from-indigo-500 via-purple-500 to-cyan-400 transition-all duration-300 rounded-full"
+                            style={{ width: `${translationProgress}%` }}
+                          />
+                        </div>
+
+                        {/* Pipeline Stages Timeline */}
+                        <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 pt-2">
+                          {[
+                            { step: 1, name: "تحلیل معنایی متن مبدا", desc: "بررسی ساختار فنی و دستور زبانی متن کارگاهی" },
+                            { step: 2, name: "استعلام از موتور پردازش", desc: "فراخوانی و دریافت ترجمه خام از مدل‌های هوشمند" },
+                            { step: 3, name: "انطباق با واژه‌نامه مصوب", desc: "تطبیق تخصصی اصطلاحات مهندسی عمران آذرستان" },
+                            { step: 4, name: "کنترل هنجار و لحن رسمی", desc: "روان‌سازی و تطبیق اصطلاحات با استانداردهای FIDIC" },
+                            { step: 5, name: "اعتبارسنجی و تایید خروجی", desc: "پردازش نهایی، نشانه‌گذاری و صدور در خروجی" }
+                          ].map((stage, idx) => {
+                            const isCompleted = translationStage > stage.step;
+                            const isActive = translationStage === stage.step;
+                            const isPending = translationStage < stage.step;
+
+                            return (
+                              <div 
+                                key={idx} 
+                                className={`p-3 rounded-xl border transition-all flex flex-col gap-1 justify-between ${
+                                  isActive 
+                                    ? "bg-indigo-950/40 border-indigo-500/50 shadow-md shadow-indigo-950/50 scale-[1.02]" 
+                                    : isCompleted 
+                                      ? "bg-slate-900/60 border-emerald-500/20 opacity-90" 
+                                      : "bg-slate-950 border-slate-900 opacity-50"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <span className={`text-[8px] font-black px-1.5 py-0.5 rounded ${
+                                    isActive 
+                                      ? "bg-indigo-500 text-white" 
+                                      : isCompleted 
+                                        ? "bg-emerald-500/20 text-emerald-400" 
+                                        : "bg-slate-800 text-slate-400"
+                                  }`}>
+                                    مرحله {stage.step}
+                                  </span>
+
+                                  {isCompleted ? (
+                                    <span className="text-emerald-400 text-[9px] font-black">✓ تکمیل</span>
+                                  ) : isActive ? (
+                                    <span className="flex items-center gap-1">
+                                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-ping"></span>
+                                      <span className="text-indigo-400 text-[9px] font-black animate-pulse">پردازش</span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-500 text-[9px] font-bold">انتظار</span>
+                                  )}
+                                </div>
+
+                                <div className="mt-2">
+                                  <h5 className="text-[10px] font-black text-slate-100">{stage.name}</h5>
+                                  <p className="text-[8px] text-slate-400 mt-0.5 leading-snug">{stage.desc}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Target Translation Textarea - Engine 1 */}
                     <div className={`flex flex-col rounded-xl p-3 border transition-all ${isComparisonMode ? 'bg-indigo-50/20 border-indigo-200' : 'bg-slate-50 border-slate-200'}`}>
